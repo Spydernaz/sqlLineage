@@ -1,0 +1,6 @@
+__pycache__
+.settings
+.vscode
+target/
+.classpath
+.project

@@ -1,0 +1,4 @@
+SELECT  t1.ID,
+        t1.NAME,
+        CASE WHEN t1.lastenrolled < DATEADD(year, -1, GETDATE()) THEN 'EXPIRED' ELSE 'ENROLLED'
+FROM unienrollments t1
