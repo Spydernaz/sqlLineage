@@ -24,6 +24,9 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.config.Lex;
 
+// Babel for Parser
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+
 
 
 public class UnwindSql {
@@ -36,6 +39,7 @@ public class UnwindSql {
         final Config config = SqlParser.configBuilder()
             .setLex(Lex.SQL_SERVER)
             .setCaseSensitive(false)
+            .setParserFactory(SqlBabelParserImpl.FACTORY)
             .build();
 
         // Check if I want to use the sample queries
