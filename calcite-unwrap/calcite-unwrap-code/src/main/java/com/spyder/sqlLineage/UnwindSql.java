@@ -23,9 +23,28 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.prepare.Prepare.CatalogReader;
+
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
+
+
+import java.sql.DriverManager;
+import java.sql.Connection;
+import java.util.Properties;
+import javax.sql.DataSource;
+
 
 // Babel for Parser
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
+import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
 
 
@@ -39,27 +58,18 @@ public class UnwindSql {
         final Config config = SqlParser.configBuilder()
             .setLex(Lex.SQL_SERVER)
             .setCaseSensitive(false)
-            .setParserFactory(SqlBabelParserImpl.FACTORY)
+            .setParserFactory(SqlDdlParserImpl.FACTORY)
             .build();
 
-        // Check if I want to use the sample queries
         String q;
         q = query.toString();
         System.out.println("======================");
-        // q = testComplexQuery;
-        // System.out.println(q);
-
 
         final SqlParser parser = SqlParser.create(q, config);
         System.out.println("===> Loaded Config and Created Parser");
-        // System.out.println(ParserImpl.FACTORY);
         
-        // for (String s : parser.getMetadata().getTokens()) {
-        //     System.out.println(s);
-        // }
         final SqlNode sqlNode = parser.parseQuery();
         System.out.println("===> Parsed the Query");
-
 
         // final SqlSelect sqlSelect = (SqlSelect) sqlNode;
         // final SqlJoin from = (SqlJoin) sqlSelect.getFrom();
