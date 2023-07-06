@@ -71,6 +71,21 @@ public class UnwindSql {
         final SqlNode sqlNode = parser.parseQuery();
         System.out.println("===> Parsed the Query");
 
+        // Try to create a a RelNode
+        final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+        final FrameworkConfig plannerConfig = Frameworks.newConfigBuilder()
+            .parserConfig(config)
+            .defaultSchema(null)
+            .traitDefs()
+            .programs()
+            .build();
+        Planner planner = Frameworks.getPlanner(plannerConfig);
+        SqlNode parse = planner.parse(query);
+
+        SqlNode validate = planner.validate(parse);
+        RelNode rel = planner.rel(validate).project();
+        System.out.println(rel.toString());
+
         // final SqlSelect sqlSelect = (SqlSelect) sqlNode;
         // final SqlJoin from = (SqlJoin) sqlSelect.getFrom();
         // JSONObject jsonObject = JsonBuilderFactory.buildObject();
