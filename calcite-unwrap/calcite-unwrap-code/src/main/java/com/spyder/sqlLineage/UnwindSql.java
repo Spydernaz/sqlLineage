@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import org.json.*;
 
 // Apache Calcite
@@ -51,10 +52,6 @@ import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 public class UnwindSql {
     public static String parseQuery(String query) throws Exception {
 
-        final String connectionstring = "PSSQL://somesqlserver.example.com:5432/database1";
-        String testSimpleQuery = "SELECT a_id, firstname as FirstName from tbl where FirstName = 'Nate' ORDER BY 1";
-        String testComplexQuery = "SELECT s.fname as FirstName, s.lname as LastName, c.CourseName FROM students s JOIN student_courses sc ON s.id = sc.student_id JOIN course c ON c.id = sc.course_id";
-        
         final Config config = SqlParser.configBuilder()
             .setLex(Lex.SQL_SERVER)
             .setCaseSensitive(false)
@@ -71,20 +68,20 @@ public class UnwindSql {
         final SqlNode sqlNode = parser.parseQuery();
         System.out.println("===> Parsed the Query");
 
-        // Try to create a a RelNode
-        final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-        final FrameworkConfig plannerConfig = Frameworks.newConfigBuilder()
-            .parserConfig(config)
-            .defaultSchema(null)
-            .traitDefs()
-            .programs()
-            .build();
-        Planner planner = Frameworks.getPlanner(plannerConfig);
-        SqlNode parse = planner.parse(query);
+        // // Try to create a a RelNode
+        // final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+        // final FrameworkConfig plannerConfig = Frameworks.newConfigBuilder()
+        //     .parserConfig(config)
+        //     .defaultSchema(null)
+        //     .traitDefs()
+        //     .programs()
+        //     .build();
+        // Planner planner = Frameworks.getPlanner(plannerConfig);
+        // SqlNode parse = planner.parse(query);
 
-        SqlNode validate = planner.validate(parse);
-        RelNode rel = planner.rel(validate).project();
-        System.out.println(rel.toString());
+        // SqlNode validate = planner.validate(parse);
+        // RelNode rel = planner.rel(validate).project();
+        // System.out.println(rel.toString());
 
         // final SqlSelect sqlSelect = (SqlSelect) sqlNode;
         // final SqlJoin from = (SqlJoin) sqlSelect.getFrom();
@@ -241,7 +238,21 @@ public class UnwindSql {
             case WITH:
                 System.out.println("===> WITH STATEMENT (NOT IMPLEMENTED)");
                 return sources;
-                
+
+            case CREATE_VIEW:
+                System.out.println(node.getKind());
+                // String methodList= Arrays.toString(node.getClass().getMethods());
+                // System.out.println(methodList);
+                // System.out.println("\n\nNode To String\n\n======\n" + node.toString());
+                // System.out.println(node.toList());
+                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
+                // System.out.println("\n\nOperator\n======\n" + ( (org.apache.calcite.sql.SqlDdl) node ).getOperator());
+                // System.out.println("\n\nQuery Field\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).query.toString());
+                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
+                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
+
+                sources.addAll(unwrap(( (org.apache.calcite.sql.ddl.SqlCreateView) node ).query));
+
             default:
                 System.out.println("some other type :: " + node.getKind().name());
                 String defaultString = ((SqlNode) node).toString();
