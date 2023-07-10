@@ -1,4 +1,4 @@
-SELECT  s.fname as FirstName, 
+SELECT  s.fname as [First Name], 
         s.lname as LastName, 
         c.CourseName 
 FROM students s 
