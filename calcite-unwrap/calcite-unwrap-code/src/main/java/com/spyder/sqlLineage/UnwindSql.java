@@ -20,6 +20,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParser.ConfigBuilder;
 import org.apache.calcite.sql.parser.SqlParser.Config;
+import org.apache.calcite.sql.fun.*;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
@@ -46,52 +47,42 @@ import javax.sql.DataSource;
 // Babel for Parser
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 
 
 
 public class UnwindSql {
+    // Create a DDL Parser
+    final static Config ddlconfig = SqlParser.configBuilder()
+        .setLex(Lex.SQL_SERVER)
+        .setCaseSensitive(false)
+        .setParserFactory(SqlDdlParserImpl.FACTORY)
+        .build();
+
+    // Create a Babel Parser
+    final static Config defaultconfig = SqlParser.configBuilder()
+        .setLex(Lex.SQL_SERVER)
+        .setCaseSensitive(false)
+        .setParserFactory(SqlParserImpl.FACTORY)
+        .build();
+
     public static String parseQuery(String query) throws Exception {
-
-        final Config config = SqlParser.configBuilder()
-            .setLex(Lex.SQL_SERVER)
-            .setCaseSensitive(false)
-            .setParserFactory(SqlDdlParserImpl.FACTORY)
-            .build();
-
         String q;
         q = query.toString();
         System.out.println("======================");
 
-        final SqlParser parser = SqlParser.create(q, config);
-        System.out.println("===> Loaded Config and Created Parser");
-        
+        // check if DDL statement. If so, use ddlconfig
+        final SqlParser parser = SqlParser.create(q, ddlconfig);
+        System.out.println("===> Loaded Config and Created DDL Parser");
+
         final SqlNode sqlNode = parser.parseQuery();
         System.out.println("===> Parsed the Query");
 
-        // // Try to create a a RelNode
-        // final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-        // final FrameworkConfig plannerConfig = Frameworks.newConfigBuilder()
-        //     .parserConfig(config)
-        //     .defaultSchema(null)
-        //     .traitDefs()
-        //     .programs()
-        //     .build();
-        // Planner planner = Frameworks.getPlanner(plannerConfig);
-        // SqlNode parse = planner.parse(query);
-
-        // SqlNode validate = planner.validate(parse);
-        // RelNode rel = planner.rel(validate).project();
-        // System.out.println(rel.toString());
-
-        // final SqlSelect sqlSelect = (SqlSelect) sqlNode;
-        // final SqlJoin from = (SqlJoin) sqlSelect.getFrom();
-        // JSONObject jsonObject = JsonBuilderFactory.buildObject();
         JSONObject jsonObject = new JSONObject();
         jsonObject.append("query", query);
         jsonObject.append("results", unwrap(sqlNode));
 
         return (jsonObject.toString());
-        // System.out.println("pause");
     }
 
     public static List unwrap(SqlNode node) throws Exception {
@@ -112,14 +103,6 @@ public class UnwindSql {
             case JOIN:
                 // Should join a list of sources as a list of objects 
                 JSONObject join = new JSONObject();
-                // List sources = new ArrayList();
-                System.out.println("===>JOIN, APPENDING LIST OF JOINS");
-
-                // join.put("type", "JOIN");
-                // join.put("joinType", ((SqlJoin) node).getJoinType().toString());
-                // join.put("joinCondition", ((SqlJoin) node).getConditionType().toString());
-                // join.put("joinLeft", unwrap(((SqlJoin) node).getLeft()));
-                // join.put("joinRight", unwrap(((SqlJoin) node).getRight()));
                 
                 sources.addAll(unwrap(((SqlJoin) node).getLeft()));
                 sources.addAll(unwrap(((SqlJoin) node).getRight()));
@@ -127,131 +110,82 @@ public class UnwindSql {
                 return sources;
 
             case SELECT:
-                // Shouldn't change sources unless there are literals but this is not coming from another table
-                System.out.println("===> SELECT STATEMENT - Select List");
-                JSONObject select = new JSONObject();
-                // List sources = new ArrayList();
-                // select.put("type", "SELECT");
-
-                // select list
-                // System.out.println("CREATE SELECT LIST");
-                // JSONArray rselectList = new JSONArray();
-                // SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-                // for (SqlNode el : selectList) {
-                //     rselectList.put(unwrap(el));
-                // }
-                // select.put("selectList", rselectList);
-
-                // from statement
-                System.out.println("===> FROM - Should update sources");
                 SqlNode from = (SqlNode) ((SqlSelect) node).getFrom();
                 if (from != null){
                     sources.addAll(unwrap(from));
                 }
-
                 return sources;
+
             case AS:
-                System.out.println("===>SOME 'AS' FUNCTION");
                 sources.addAll(unwrap((SqlNode) ((SqlBasicCall) node).operand(0)));
                 return sources;
-                // // Shouldnt update anything other than resolving aliases
-                // JSONObject as = new JSONObject();
-                // // String actualId = (String) unwrap((SqlNode) ((SqlBasicCall)
-                // // node).operand(0));
-                // // String alias = (String) unwrap(((SqlBasicCall) node).operand(1));
-                // as.put("type", "AS");
-                // as.put("actual", unwrap((SqlNode) ((SqlBasicCall) node).operand(0)));
-                // as.put("alias", unwrap((SqlNode) ((SqlBasicCall) node).operand(1)));
-                // return (as);
 
             case IDENTIFIER:
-                System.out.println("===>SOME 'IDENTIFIER' FUNCTION");
-                System.out.println("" + (String) ((SqlIdentifier) node).toString());
                 sources.add("" + (String) ((SqlIdentifier) node).toString());
                 return sources;
-                // JSONObject identifier = new JSONObject();
-                // identifier.put("type", "IDENTIFIER");
-                // identifier.put("name", (String) ((SqlIdentifier) node).toString());
-                // return (identifier);
+
             case OTHER_FUNCTION:
                 System.out.println("===> OTHER FUNCTION");
                 return sources;
-                // System.out.println("===>SOME 'OTHER FUNCTION?' WHATEVER THAT MEANS");
-                // JSONObject other_function = new JSONObject();
-                // other_function.put("type", "OTHER_FUNCTION");
-                // // other_function.put("name", (String) ((SqlFunction) ((SqlBasicCall)
-                // // node)).getName();
-                // other_function.put("string", (String) node.toString());
-                // return (other_function);
 
             case AND:
-                System.out.println("===> Logic and Math");
+                System.out.println("===> AND STATEMENT");
                 return sources;
+
             case OR:
-                System.out.println("===> Logic and Math");
-                // JSONObject logic = new JSONObject();
-                // logic.put("type", "LOGICAL_CONDITION");
-                // logic.put("condition_type", node.getKind().toString().toLowerCase());
-                // logic.put("left", unwrap((SqlNode) ((SqlBasicCall) node).operand(0)));
-                // logic.put("right", unwrap((SqlNode) ((SqlBasicCall) node).operand(1)));
-
+                System.out.println("===> OR STATEMENT");
                 return sources;
+
             case EQUALS:
-                System.out.println("===> Logic and Math");
+                System.out.println("===> EQUALS");
                 return sources;
-            case NOT_EQUALS:
-                System.out.println("===> Logic and Math");
-                return sources;
-            case GREATER_THAN:
-                System.out.println("===> Logic and Math");
-                return sources;
-            case GREATER_THAN_OR_EQUAL:
-                System.out.println("===> Logic and Math");
-                return sources;
-            case LESS_THAN:
-                System.out.println("===> Logic and Math");
-                return sources;
-            case LESS_THAN_OR_EQUAL:
-                System.out.println("===> Logic and Math");
-                return sources;
-            case LIKE:
-                System.out.println("===> a LIKE for conditional search");
-                return sources;
-                // JSONObject comparison = new JSONObject();
-                // comparison.put("type", "comparison");
-                // comparison.put("comparison_type", node.getKind().toString().toLowerCase());
-                // comparison.put("left", unwrap((SqlNode) ((SqlBasicCall) node).operand(0)));
-                // comparison.put("right", unwrap((SqlNode) ((SqlBasicCall) node).operand(1)));
 
-                // return (comparison);
+            case NOT_EQUALS:
+                System.out.println("===> NOT EQUALS");
+                return sources;
+
+            case GREATER_THAN:
+                System.out.println("===> GREATER THAN");
+                return sources;
+
+            case GREATER_THAN_OR_EQUAL:
+                System.out.println("===> GREATER THAN OR EQUAL");
+                return sources;
+
+            case LESS_THAN:
+                System.out.println("===> LESS THAN");
+                return sources;
+
+            case LESS_THAN_OR_EQUAL:
+                System.out.println("===> LESS THAN OR EQUAL");
+                return sources;
+
+            case LIKE:
+                System.out.println("===> LIKE");
+                return sources;
+
             case LITERAL:
                 System.out.println("===> LITERAL :: " + node.getKind().name());
                 List stringish = new ArrayList();
                 stringish.add("" + ((SqlLiteral) node).getValue());
                 return stringish;
-                // System.out.println("===> Literal :: " + node.getKind().name());
-                // JSONObject literal = new JSONObject();
-                // literal.put("type", "LITERAL");
-                // literal.put("value", ((SqlLiteral) node).getValue());
-                
-                // return (literal);
+
             case WITH:
-                System.out.println("===> WITH STATEMENT (NOT IMPLEMENTED)");
+                // Parse each WITH table
+                for (int i = 0; i < ( (SqlWith) node ).withList.size(); i++)
+                {
+                    SqlWithItem withTable = ( (SqlWithItem) ( (SqlWith) node ).withList.get(i));
+                    SqlSelect withTbl = (SqlSelect) withTable.query;
+                    sources.addAll(unwrap(withTbl));
+                }
+                // Parse remainder of the query
+                sources.addAll(unwrap(((SqlWith)(node)).body));
                 return sources;
 
             case CREATE_VIEW:
-                System.out.println(node.getKind());
-                // String methodList= Arrays.toString(node.getClass().getMethods());
-                // System.out.println(methodList);
-                // System.out.println("\n\nNode To String\n\n======\n" + node.toString());
-                // System.out.println(node.toList());
-                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
-                // System.out.println("\n\nOperator\n======\n" + ( (org.apache.calcite.sql.SqlDdl) node ).getOperator());
-                // System.out.println("\n\nQuery Field\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).query.toString());
-                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
-                // System.out.println("\n\nOperandList\n======\n" + ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).getOperandList());
-
+                String q = ( (org.apache.calcite.sql.ddl.SqlCreateView) node ).query.toString();
                 sources.addAll(unwrap(( (org.apache.calcite.sql.ddl.SqlCreateView) node ).query));
+                return sources;
 
             default:
                 System.out.println("some other type :: " + node.getKind().name());

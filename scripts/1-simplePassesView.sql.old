@@ -1,4 +1,5 @@
 CREATE VIEW enrollments AS
+WITH temptable as (SELECT * from universities), temptable2 as (select * from allstudents)
 SELECT  s.fname as FirstName, 
         s.lname as LastName, 
         c.CourseName 
