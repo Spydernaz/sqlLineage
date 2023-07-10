@@ -73,13 +73,18 @@ public class UnwindSql {
 
         // check if DDL statement. If so, use ddlconfig
         final SqlParser parser = SqlParser.create(q, ddlconfig);
+        final SqlParser sqlparser = SqlParser.create(q, ddlconfig);
         System.out.println("===> Loaded Config and Created DDL Parser");
+
+        // // System.out.println(parser.getMetadata().getJdbcKeywords());
+        // System.out.println(parser.getMetadata().getTokens() + "\n\n");
+        // System.out.println(sqlparser.getMetadata().getTokens());
 
         final SqlNode sqlNode = parser.parseQuery();
         System.out.println("===> Parsed the Query");
 
         JSONObject jsonObject = new JSONObject();
-        jsonObject.append("query", query);
+        // jsonObject.append("query", query);
         jsonObject.append("results", unwrap(sqlNode));
 
         return (jsonObject.toString());
