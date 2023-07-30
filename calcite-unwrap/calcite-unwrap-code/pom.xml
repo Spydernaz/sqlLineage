@@ -21,20 +21,20 @@
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
-      <version>1.34.0</version>
+      <version>1.35.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.calcite/calcite-babel -->
     <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-babel</artifactId>
-        <version>1.34.0</version>
+        <version>1.35.0</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.apache.calcite/calcite-server -->
     <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-server</artifactId>
-        <version>1.34.0</version>
+        <version>1.35.0</version>
     </dependency>
     <dependency>
       <groupId>org.json</groupId>
